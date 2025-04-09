@@ -7,24 +7,35 @@ import bcrypt from 'bcryptjs';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// Configure CORS to accept requests from your frontend domain
+app.use(cors({
+  origin: ['https://calendar-tan-eight.vercel.app', 'http://localhost:5173'],
+  credentials: true
+}));
+
 app.use(express.json());
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/calendar_app')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB Connection with proper error handling
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB Atlas'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
+// Define Schemas
 const userSchema = new mongoose.Schema({
-  email: { 
-    type: String, 
+  email: {
+    type: String,
     required: [true, 'Email is required'],
     unique: true,
     trim: true,
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
   },
-  password: { 
-    type: String, 
+  password: {
+    type: String,
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
@@ -32,22 +43,52 @@ const userSchema = new mongoose.Schema({
 });
 
 const eventSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  title: { type: String, required: true },
-  description: String,
-  date: { type: Date, required: true },
-  reminderTime: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true // Add index for better query performance
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  date: {
+    type: Date,
+    required: true,
+    index: true // Add index for better query performance
+  },
+  reminderTime: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-const User = mongoose.model('User', userSchema);
-const Event = mongoose.model('Event', eventSchema);
+// Create models if they don't exist
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+const Event = mongoose.models.Event || mongoose.model('Event', eventSchema);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// Registration endpoint with better error handling
 app.post('/api/register', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -56,29 +97,31 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
-    // Check if email is valid
     const emailRegex = /^\S+@\S+\.\S+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-    // Check if user already exists
+    // Check for existing user
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({ error: 'Email already exists' });
     }
 
-    // Hash password and create user
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ 
-      email: email.toLowerCase(), 
-      password: hashedPassword 
+
+    // Create new user
+    const user = new User({
+      email: email.toLowerCase(),
+      password: hashedPassword
     });
 
     await user.save();
+
     console.log('New user registered:', { email: user.email, id: user._id });
 
-    res.status(201).json({ 
+    res.status(201).json({
       userId: user._id,
       message: 'Registration successful'
     });
@@ -88,6 +131,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Login endpoint with better error handling
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -114,54 +158,74 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Events endpoints with better error handling
 app.post('/api/events', async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId, title, description, date, reminderTime } = req.body;
+
+    if (!userId || !title || !date) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     const user = await User.findById(userId);
-    
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
 
     const event = new Event({
-      ...req.body,
-      userId: user._id
+      userId,
+      title,
+      description,
+      date,
+      reminderTime
     });
+
     await event.save();
     res.status(201).json(event);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Create event error:', error);
+    res.status(500).json({ error: 'Server error while creating event' });
   }
 });
 
 app.get('/api/events/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
     const user = await User.findById(userId);
-    
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    const events = await Event.find({ userId: user._id });
+    const events = await Event.find({ userId }).sort({ date: 1 });
     res.json(events);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Fetch events error:', error);
+    res.status(500).json({ error: 'Server error while fetching events' });
   }
 });
 
 app.delete('/api/events/:eventId', async (req, res) => {
   try {
     const { eventId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ error: 'Invalid event ID' });
+    }
+
     const event = await Event.findByIdAndDelete(eventId);
-    
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
     res.json({ message: 'Event deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Delete event error:', error);
+    res.status(500).json({ error: 'Server error while deleting event' });
   }
 });
 
