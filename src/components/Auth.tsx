@@ -4,7 +4,7 @@ import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { login, register } from '../lib/api';
 
 interface AuthProps {
-  onAuth: (userId: string) => void;
+  onAuth: (email: string) => void;
 }
 
 export function Auth({ onAuth }: AuthProps) {
@@ -18,7 +18,7 @@ export function Auth({ onAuth }: AuthProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
 
@@ -44,13 +44,13 @@ export function Auth({ onAuth }: AuthProps) {
       }
 
       const response = await login(email, password);
-      
-      if (!response.userId) {
+
+      if (!response.email) {
         throw new Error('Authentication failed. Please try again.');
       }
 
       toast.success('Successfully logged in!');
-      onAuth(response.userId);
+      onAuth(response.email);
     } catch (error: any) {
       console.error('Auth error:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
@@ -67,8 +67,8 @@ export function Auth({ onAuth }: AuthProps) {
             {isLogin ? 'Welcome back' : 'Create account'}
           </h2>
           <p className="mt-2 text-center text-sm text-zinc-500">
-            {isLogin 
-              ? 'Sign in to manage your calendar and events' 
+            {isLogin
+              ? 'Sign in to manage your calendar and events'
               : 'Join us to start organizing your schedule'}
           </p>
         </div>

@@ -1,3 +1,5 @@
+import { CalendarEvent } from '../types';
+
 const API_URL = 'https://calendar-s4uq.onrender.com/api';
 
 export const login = async (email: string, password: string) => {
@@ -46,10 +48,10 @@ export const register = async (email: string, password: string) => {
   }
 };
 
-export const fetchEvents = async (userId: string) => {
+export const fetchEvents = async (userEmail: string) => {
   try {
-    const response = await fetch(`${API_URL}/events/${userId}`);
-    
+    const response = await fetch(`${API_URL}/events/${encodeURIComponent(userEmail)}`);
+
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.error || 'Failed to fetch events');
@@ -63,14 +65,14 @@ export const fetchEvents = async (userId: string) => {
   }
 };
 
-export const createEvent = async (userId: string, event: Partial<CalendarEvent>) => {
+export const createEvent = async (userEmail: string, event: Partial<CalendarEvent>) => {
   try {
     const response = await fetch(`${API_URL}/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...event, userId }),
+      body: JSON.stringify({ ...event, userEmail }),
     });
 
     if (!response.ok) {
@@ -86,14 +88,14 @@ export const createEvent = async (userId: string, event: Partial<CalendarEvent>)
   }
 };
 
-export const deleteEvent = async (eventId: string) => {
+export const deleteEvent = async (userEmail: string, title: string, description: string = '') => {
   try {
-    if (!eventId || typeof eventId !== 'string' || eventId.trim() === '') {
-      throw new Error('Invalid event ID');
-    }
-
-    const response = await fetch(`${API_URL}/events/${eventId}`, {
+    const response = await fetch(`${API_URL}/events`, {
       method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userEmail, title, description }),
     });
 
     if (!response.ok) {
