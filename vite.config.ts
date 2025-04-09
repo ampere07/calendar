@@ -16,5 +16,4 @@ export default defineConfig({
       },
     },
   },
-  base: 'https://calendar-tan-eight.vercel.app/',
 });
