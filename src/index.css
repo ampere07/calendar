@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900;
+  }
+}
+
+.calendar-day {
+  @apply transition-all duration-200;
+}
+
+.calendar-day:hover {
+  @apply transform scale-[1.02] shadow-sm;
+}
