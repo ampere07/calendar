@@ -1,76 +1,105 @@
 const API_URL = 'https://calendar-s4uq.onrender.com/api';
 
 export const login = async (email: string, password: string) => {
-  const response = await fetch(`${API_URL}/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Login failed');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Login error:', error);
+    throw new Error(error.message || 'Failed to connect to the server');
   }
-
-  return response.json();
 };
 
 export const register = async (email: string, password: string) => {
-  const response = await fetch(`${API_URL}/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Registration failed');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    throw new Error(error.message || 'Failed to connect to the server');
   }
-
-  return response.json();
 };
 
 export const fetchEvents = async (userId: string) => {
-  const response = await fetch(`${API_URL}/events/${userId}`);
+  try {
+    const response = await fetch(`${API_URL}/events/${userId}`);
+    const data = await response.json();
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to fetch events');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Fetch events error:', error);
+    throw new Error(error.message || 'Failed to connect to the server');
   }
-
-  return response.json();
 };
 
 export const createEvent = async (userId: string, event: Partial<CalendarEvent>) => {
-  const response = await fetch(`${API_URL}/events`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ ...event, userId }),
-  });
+  try {
+    const response = await fetch(`${API_URL}/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ...event, userId }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create event');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Create event error:', error);
+    throw new Error(error.message || 'Failed to connect to the server');
   }
-
-  return response.json();
 };
 
 export const deleteEvent = async (eventId: string) => {
-  const response = await fetch(`${API_URL}/events/${eventId}`, {
-    method: 'DELETE',
-  });
+  try {
+    const response = await fetch(`${API_URL}/events/${eventId}`, {
+      method: 'DELETE',
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to delete event');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Delete event error:', error);
+    throw new Error(error.message || 'Failed to connect to the server');
   }
-
-  return response.json();
 };

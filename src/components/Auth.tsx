@@ -18,9 +18,21 @@ export function Auth({ onAuth }: AuthProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
+      setLoading(true);
+
+      // Validate email
+      if (!email.includes('@')) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Validate password
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+
+      // Check password confirmation for registration
       if (!isLogin && password !== confirmPassword) {
         throw new Error('Passwords do not match');
       }
@@ -28,11 +40,16 @@ export function Auth({ onAuth }: AuthProps) {
       const response = isLogin
         ? await login(email, password)
         : await register(email, password);
-      
+
+      if (!response.userId) {
+        throw new Error('Authentication failed. Please try again.');
+      }
+
       toast.success(isLogin ? 'Successfully logged in!' : 'Registration successful!');
       onAuth(response.userId);
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Auth error:', error);
+      toast.error(error.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
