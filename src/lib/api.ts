@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://calendar-s4uq.onrender.com/api';
 
 export const login = async (email: string, password: string) => {
   const response = await fetch(`${API_URL}/login`, {

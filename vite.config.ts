@@ -7,4 +7,14 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://calendar-s4uq.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
+  base: 'https://calendar-tan-eight.vercel.app/',
 });
