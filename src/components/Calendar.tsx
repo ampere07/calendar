@@ -441,12 +441,6 @@ export function Calendar({ userEmail }: CalendarProps) {
               <h3 className="text-xl font-semibold text-zinc-800">
                 Events for {format(selectedDateEvents.date, 'MMMM d, yyyy')}
               </h3>
-              <button
-                onClick={() => setSelectedDateEvents({ date: null, events: [] })}
-                className="text-zinc-400 hover:text-zinc-600 transition duration-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             <div className="space-y-4">
