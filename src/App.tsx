@@ -25,7 +25,7 @@ function App() {
         <>
           <nav className="bg-white shadow-sm">
             <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-              <h1 className="text-xl font-semibold text-zinc-800 hidden sm:block">My Calendar</h1>
+              <h1 className="text-xl font-semibold text-zinc-800 hidden sm:block"> Calendar</h1>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-zinc-600">{userEmail}</span>
                 <button
