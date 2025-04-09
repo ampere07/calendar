@@ -23,16 +23,16 @@ import { fetchEvents, createEvent, deleteEvent } from '../lib/api';
 import { toast } from 'react-hot-toast';
 
 interface CalendarProps {
-  userId: string;
+  userEmail: string;
 }
 
-export function Calendar({ userId }: CalendarProps) {
+export function Calendar({ userEmail }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showEventForm, setShowEventForm] = useState(false);
-  const [newEvent, setNewEvent] = useState({ 
-    title: '', 
-    description: '', 
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    description: '',
     date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     reminderTime: 15
   });
@@ -56,17 +56,20 @@ export function Calendar({ userId }: CalendarProps) {
   }, []);
 
   useEffect(() => {
-    loadEvents();
-    const checkInterval = setInterval(checkEventReminders, 60000);
-    return () => clearInterval(checkInterval);
-  }, [userId]);
+    if (userEmail) {
+      loadEvents();
+      const checkInterval = setInterval(checkEventReminders, 60000);
+      return () => clearInterval(checkInterval);
+    }
+  }, [userEmail]);
 
   const loadEvents = async () => {
     try {
-      const data = await fetchEvents(userId);
+      const data = await fetchEvents(userEmail);
       setEvents(data);
     } catch (error: any) {
       toast.error('Failed to fetch events');
+      console.error('Fetch events error:', error);
     }
   };
 
@@ -75,12 +78,12 @@ export function Calendar({ userId }: CalendarProps) {
     events.forEach(event => {
       const eventDate = new Date(event.date);
       const reminderTime = addMinutes(eventDate, -event.reminderTime);
-      
+
       if (!isPast(reminderTime) && differenceInMinutes(reminderTime, now) <= 1) {
         if (Notification.permission === 'default') {
           Notification.requestPermission();
         }
-        
+
         if (Notification.permission === 'granted') {
           new Notification('Event Reminder', {
             body: `Upcoming event: ${event.title} at ${format(eventDate, 'h:mm a')}`,
@@ -103,7 +106,7 @@ export function Calendar({ userId }: CalendarProps) {
     }
 
     try {
-      await createEvent(userId, {
+      await createEvent(userEmail, {
         title: newEvent.title,
         description: newEvent.description,
         date: new Date(newEvent.date).toISOString(),
@@ -112,29 +115,28 @@ export function Calendar({ userId }: CalendarProps) {
 
       toast.success('Event added successfully');
       setShowEventForm(false);
-      setNewEvent({ 
-        title: '', 
-        description: '', 
+      setNewEvent({
+        title: '',
+        description: '',
         date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-        reminderTime: 15 
+        reminderTime: 15
       });
       loadEvents();
     } catch (error: any) {
       toast.error('Failed to add event');
+      console.error('Add event error:', error);
     }
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!eventId) {
-      toast.error('Invalid event ID');
-      return;
-    }
-
+  const handleDeleteEvent = async (event: CalendarEvent) => {
     try {
-      const response = await deleteEvent(eventId);
-      if (response.message === 'Event deleted successfully') {
-        toast.success('Event deleted successfully');
-        loadEvents();
+      await deleteEvent(userEmail, event.title, event.description);
+      toast.success('Event deleted successfully');
+      loadEvents();
+
+      // Close the modal if it's open
+      if (selectedDateEvents.date) {
+        setSelectedDateEvents({ date: null, events: [] });
       }
     } catch (error: any) {
       toast.error('Failed to delete event');
@@ -145,10 +147,10 @@ export function Calendar({ userId }: CalendarProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const startDate = new Date(monthStart);
-  
+
   const startDay = getDay(monthStart);
   startDate.setDate(1 - startDay);
-  
+
   const endDate = addDays(startDate, 41);
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
@@ -160,7 +162,7 @@ export function Calendar({ userId }: CalendarProps) {
     );
   };
 
-  const sortedEvents = [...events].sort((a, b) => 
+  const sortedEvents = [...events].sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -186,17 +188,17 @@ export function Calendar({ userId }: CalendarProps) {
 
       {/* Overlay for mobile sidebar */}
       {showSidebar && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20"
           onClick={() => setShowSidebar(false)}
         />
       )}
 
       {/* Side Navigation */}
-      <div 
+      <div
         className={`
-          fixed sm:relative inset-y-0 left-0 w-[320px] sm:w-96 
-          bg-white border-r border-zinc-200 
+          fixed sm:relative inset-y-0 left-0 w-[320px] sm:w-96
+          bg-white border-r border-zinc-200
           transform transition-transform duration-300 ease-in-out z-30
           ${showSidebar ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
         `}
@@ -292,7 +294,7 @@ export function Calendar({ userId }: CalendarProps) {
               ) : (
                 sortedEvents.map((event) => (
                   <div
-                    key={event.id}
+                    key={event._id}
                     className="p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition duration-200"
                   >
                     <div className="flex items-start justify-between">
@@ -312,7 +314,7 @@ export function Calendar({ userId }: CalendarProps) {
                         )}
                       </div>
                       <button
-                        onClick={() => handleDeleteEvent(event.id)}
+                        onClick={() => handleDeleteEvent(event)}
                         className="ml-2 text-zinc-400 hover:text-red-500 transition duration-200 flex-shrink-0"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -386,19 +388,19 @@ export function Calendar({ userId }: CalendarProps) {
                 >
                   <div className="flex justify-between items-start">
                     <span className={`font-medium ${
-                      isToday(day) ? 'text-zinc-900' : 
+                      isToday(day) ? 'text-zinc-900' :
                       hasEvents ? 'text-zinc-800' : 'text-zinc-600'
                     }`}>
                       {format(day, 'd')}
                     </span>
                   </div>
-                  
+
                   {/* Mobile Event Indicators */}
                   {isMobile && hasEvents && (
                     <div className="mt-1 flex gap-1 flex-wrap">
                       {dayEvents.map((event) => (
                         <div
-                          key={event.id}
+                          key={event._id}
                           className="w-2 h-2 rounded-full bg-zinc-800"
                           title={event.title}
                         />
@@ -411,7 +413,7 @@ export function Calendar({ userId }: CalendarProps) {
                     <div className="mt-2 space-y-1">
                       {dayEvents.map((event) => (
                         <div
-                          key={event.id}
+                          key={event._id}
                           className="text-sm p-2 bg-zinc-50 rounded-lg text-zinc-700 hover:bg-zinc-100 transition duration-200"
                         >
                           <div className="flex items-center space-x-1">
@@ -450,7 +452,7 @@ export function Calendar({ userId }: CalendarProps) {
             <div className="space-y-4">
               {selectedDateEvents.events.map((event) => (
                 <div
-                  key={event.id}
+                  key={event._id}
                   className="bg-zinc-50 rounded-xl p-4 hover:bg-zinc-100 transition duration-200"
                 >
                   <div className="flex items-start justify-between">
@@ -471,10 +473,7 @@ export function Calendar({ userId }: CalendarProps) {
                       )}
                     </div>
                     <button
-                      onClick={() => {
-                        handleDeleteEvent(event.id);
-                        setSelectedDateEvents({ date: null, events: [] });
-                      }}
+                      onClick={() => handleDeleteEvent(event)}
                       className="ml-4 text-zinc-400 hover:text-red-500 transition duration-200"
                     >
                       <Trash2 className="w-4 h-4" />

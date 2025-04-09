@@ -1,11 +1,11 @@
 export interface User {
-  id: string;
   email: string;
+  password?: string;
 }
 
 export interface CalendarEvent {
-  id: string;
-  userId: string;
+  _id: string;
+  userEmail: string;
   title: string;
   description: string;
   date: string;
