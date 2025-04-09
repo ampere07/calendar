@@ -49,7 +49,7 @@ export const register = async (email: string, password: string) => {
 export const fetchEvents = async (userId: string) => {
   try {
     const response = await fetch(`${API_URL}/events/${userId}`);
-
+    
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.error || 'Failed to fetch events');

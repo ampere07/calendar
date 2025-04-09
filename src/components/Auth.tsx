@@ -18,34 +18,38 @@ export function Auth({ onAuth }: AuthProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     try {
       setLoading(true);
 
-      // Validate email
       if (!email.includes('@')) {
         throw new Error('Please enter a valid email address');
       }
 
-      // Validate password
       if (password.length < 6) {
         throw new Error('Password must be at least 6 characters long');
       }
 
-      // Check password confirmation for registration
       if (!isLogin && password !== confirmPassword) {
         throw new Error('Passwords do not match');
       }
 
-      const response = isLogin
-        ? await login(email, password)
-        : await register(email, password);
+      if (!isLogin) {
+        await register(email, password);
+        toast.success('Account created successfully! Please log in.');
+        setIsLogin(true);
+        setPassword('');
+        setConfirmPassword('');
+        return;
+      }
 
+      const response = await login(email, password);
+      
       if (!response.userId) {
         throw new Error('Authentication failed. Please try again.');
       }
 
-      toast.success(isLogin ? 'Successfully logged in!' : 'Registration successful!');
+      toast.success('Successfully logged in!');
       onAuth(response.userId);
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -63,7 +67,9 @@ export function Auth({ onAuth }: AuthProps) {
             {isLogin ? 'Welcome back' : 'Create account'}
           </h2>
           <p className="mt-2 text-center text-sm text-zinc-500">
-            {isLogin ? 'Sign in to your account' : 'Start your journey with us'}
+            {isLogin 
+              ? 'Sign in to manage your calendar and events' 
+              : 'Join us to start organizing your schedule'}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

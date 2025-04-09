@@ -26,16 +26,16 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Define Schemas
 const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
+  email: { 
+    type: String, 
     required: [true, 'Email is required'],
     unique: true,
     trim: true,
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
   },
-  password: {
-    type: String,
+  password: { 
+    type: String, 
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
@@ -43,35 +43,35 @@ const userSchema = new mongoose.Schema({
 });
 
 const eventSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
     required: true,
     index: true // Add index for better query performance
   },
-  title: {
-    type: String,
+  title: { 
+    type: String, 
     required: true,
     trim: true
   },
-  description: {
+  description: { 
     type: String,
     trim: true,
     default: ''
   },
-  date: {
-    type: Date,
+  date: { 
+    type: Date, 
     required: true,
     index: true // Add index for better query performance
   },
-  reminderTime: {
-    type: Number,
+  reminderTime: { 
+    type: Number, 
     default: 0,
     min: 0
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
   }
 });
 
@@ -110,18 +110,18 @@ app.post('/api/register', async (req, res) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
+    
     // Create new user
-    const user = new User({
-      email: email.toLowerCase(),
-      password: hashedPassword
+    const user = new User({ 
+      email: email.toLowerCase(), 
+      password: hashedPassword 
     });
 
     await user.save();
-
+    
     console.log('New user registered:', { email: user.email, id: user._id });
-
-    res.status(201).json({
+    
+    res.status(201).json({ 
       userId: user._id,
       message: 'Registration successful'
     });
@@ -191,7 +191,7 @@ app.post('/api/events', async (req, res) => {
 app.get('/api/events/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-
+    
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
