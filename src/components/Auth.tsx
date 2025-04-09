@@ -64,7 +64,7 @@ export function Auth({ onAuth }: AuthProps) {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)]">
         <div>
           <h2 className="text-center text-3xl font-light text-zinc-800 tracking-tight">
-            {isLogin ? 'Welcome back' : 'Create account'}
+            {isLogin ? 'Welcome' : 'Create account'}
           </h2>
           <p className="mt-2 text-center text-sm text-zinc-500">
             {isLogin
