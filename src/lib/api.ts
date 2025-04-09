@@ -10,12 +10,12 @@ export const login = async (email: string, password: string) => {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json();
       throw new Error(data.error || 'Login failed');
     }
 
+    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error('Login error:', error);
@@ -33,12 +33,12 @@ export const register = async (email: string, password: string) => {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json();
       throw new Error(data.error || 'Registration failed');
     }
 
+    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error('Registration error:', error);
@@ -49,12 +49,13 @@ export const register = async (email: string, password: string) => {
 export const fetchEvents = async (userId: string) => {
   try {
     const response = await fetch(`${API_URL}/events/${userId}`);
-    const data = await response.json();
 
     if (!response.ok) {
+      const data = await response.json();
       throw new Error(data.error || 'Failed to fetch events');
     }
 
+    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error('Fetch events error:', error);
@@ -72,12 +73,12 @@ export const createEvent = async (userId: string, event: Partial<CalendarEvent>)
       body: JSON.stringify({ ...event, userId }),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json();
       throw new Error(data.error || 'Failed to create event');
     }
 
+    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error('Create event error:', error);
@@ -91,12 +92,12 @@ export const deleteEvent = async (eventId: string) => {
       method: 'DELETE',
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json();
       throw new Error(data.error || 'Failed to delete event');
     }
 
+    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error('Delete event error:', error);
