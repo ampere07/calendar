@@ -14,8 +14,10 @@ import {
   differenceInMinutes,
   parseISO,
   getDay,
+  lastDayOfWeek,
+  addDays,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Bell, BellOff, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Bell, BellOff, Calendar as CalendarIcon, Menu, X, Clock } from 'lucide-react';
 import { CalendarEvent } from '../types';
 import { fetchEvents, createEvent, deleteEvent } from '../lib/api';
 import { toast } from 'react-hot-toast';
@@ -36,6 +38,10 @@ export function Calendar({ userId }: CalendarProps) {
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [selectedDateEvents, setSelectedDateEvents] = useState<{ date: Date | null, events: CalendarEvent[] }>({
+    date: null,
+    events: []
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -119,31 +125,34 @@ export function Calendar({ userId }: CalendarProps) {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
+    if (!eventId) {
+      toast.error('Invalid event ID');
+      return;
+    }
+
     try {
-      await deleteEvent(eventId);
-      toast.success('Event deleted successfully');
-      loadEvents();
+      const response = await deleteEvent(eventId);
+      if (response.message === 'Event deleted successfully') {
+        toast.success('Event deleted successfully');
+        loadEvents();
+      }
     } catch (error: any) {
       toast.error('Failed to delete event');
+      console.error('Delete event error:', error);
     }
   };
 
-  // Calendar grid generation
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const startDate = new Date(monthStart);
-  const endDate = new Date(monthEnd);
   
-  // Calculate the correct starting position
   const startDay = getDay(monthStart);
   startDate.setDate(1 - startDay);
   
-  // Ensure we have enough days to fill the grid
-  const daysNeeded = 42; // 6 rows × 7 days
-  endDate.setDate(endDate.getDate() + (daysNeeded - ((endDate.getDate() - startDate.getDate()) + 1)));
+  const endDate = addDays(startDate, 41);
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const getEventsForDate = (date: Date) => {
     return events.filter((event) =>
@@ -155,15 +164,41 @@ export function Calendar({ userId }: CalendarProps) {
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
+  const handleDateClick = (date: Date, events: CalendarEvent[]) => {
+    setSelectedDateEvents({
+      date,
+      events: events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    });
+  };
+
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-50 relative">
+      {/* Mobile Header with Hamburger Menu */}
+      <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-zinc-200 flex items-center px-4 sm:hidden z-20">
+        <button
+          onClick={() => setShowSidebar(true)}
+          className="p-2 hover:bg-zinc-100 rounded-xl transition duration-200"
+        >
+          <Menu className="w-6 h-6 text-zinc-600" />
+        </button>
+        <h1 className="ml-4 text-lg font-semibold text-zinc-800">Calendar</h1>
+      </div>
+
+      {/* Overlay for mobile sidebar */}
+      {showSidebar && isMobile && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       {/* Side Navigation */}
       <div 
         className={`
-          ${showSidebar ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'} 
-          ${isMobile ? 'fixed inset-y-0 left-0 z-30' : 'relative'}
-          ${isMobile ? 'w-full sm:w-96' : 'w-96'}
-          bg-white border-r border-zinc-200 transition-all duration-300 overflow-hidden
+          fixed sm:relative inset-y-0 left-0 w-[320px] sm:w-96 
+          bg-white border-r border-zinc-200 
+          transform transition-transform duration-300 ease-in-out z-30
+          ${showSidebar ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
         `}
       >
         <div className="h-full flex flex-col">
@@ -292,7 +327,7 @@ export function Calendar({ userId }: CalendarProps) {
       </div>
 
       {/* Main Calendar Area */}
-      <div className="flex-1 p-4 sm:p-6 overflow-auto">
+      <div className="flex-1 p-4 sm:p-6 overflow-auto mt-16 sm:mt-0">
         <div className="bg-white rounded-2xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] p-4 sm:p-8">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
@@ -340,12 +375,12 @@ export function Calendar({ userId }: CalendarProps) {
               return (
                 <div
                   key={day.toString()}
-                  className={`min-h-[120px] p-3 rounded-xl border transition-all duration-200 hover:shadow-md calendar-day
-                    ${isSameMonth(day, currentDate)
-                      ? 'bg-white'
-                      : 'bg-zinc-50 text-zinc-400'
-                    }
-                    ${hasEvents ? 'border-zinc-300' : 'border-zinc-100'}
+                  onClick={() => hasEvents && handleDateClick(day, dayEvents)}
+                  className={`
+                    ${isMobile ? 'min-h-[60px]' : 'min-h-[100px]'}
+                    p-3 rounded-xl border transition-all duration-200 hover:shadow-md calendar-day
+                    ${isSameMonth(day, currentDate) ? 'bg-white' : 'bg-zinc-50 text-zinc-400'}
+                    ${hasEvents ? 'border-zinc-300 cursor-pointer' : 'border-zinc-100'}
                     ${isToday(day) ? 'ring-2 ring-zinc-800 ring-opacity-10' : ''}
                   `}
                 >
@@ -357,27 +392,109 @@ export function Calendar({ userId }: CalendarProps) {
                       {format(day, 'd')}
                     </span>
                   </div>
-                  <div className="mt-2 space-y-1">
-                    {dayEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className="text-sm p-2 bg-zinc-50 rounded-lg text-zinc-700 hover:bg-zinc-100 transition duration-200"
-                      >
-                        <div className="flex items-center space-x-1">
-                          {event.reminderTime > 0 && (
-                            <Bell className="w-3 h-3 text-zinc-400" />
-                          )}
-                          <span className="truncate">{event.title}</span>
+                  
+                  {/* Mobile Event Indicators */}
+                  {isMobile && hasEvents && (
+                    <div className="mt-1 flex gap-1 flex-wrap">
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="w-2 h-2 rounded-full bg-zinc-800"
+                          title={event.title}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Desktop Event List */}
+                  {!isMobile && (
+                    <div className="mt-2 space-y-1">
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="text-sm p-2 bg-zinc-50 rounded-lg text-zinc-700 hover:bg-zinc-100 transition duration-200"
+                        >
+                          <div className="flex items-center space-x-1">
+                            {event.reminderTime > 0 && (
+                              <Bell className="w-3 h-3 text-zinc-400" />
+                            )}
+                            <span className="truncate">{event.title}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+
+      {/* Date Events Modal */}
+      {selectedDateEvents.date && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-zinc-800">
+                Events for {format(selectedDateEvents.date, 'MMMM d, yyyy')}
+              </h3>
+              <button
+                onClick={() => setSelectedDateEvents({ date: null, events: [] })}
+                className="text-zinc-400 hover:text-zinc-600 transition duration-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {selectedDateEvents.events.map((event) => (
+                <div
+                  key={event.id}
+                  className="bg-zinc-50 rounded-xl p-4 hover:bg-zinc-100 transition duration-200"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-zinc-900">{event.title}</h4>
+                      <div className="flex items-center text-sm text-zinc-500 mt-1">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {format(parseISO(event.date), 'h:mm a')}
+                      </div>
+                      {event.description && (
+                        <p className="text-sm text-zinc-600 mt-2">{event.description}</p>
+                      )}
+                      {event.reminderTime > 0 && (
+                        <div className="flex items-center text-xs text-zinc-500 mt-2">
+                          <Bell className="w-3 h-3 mr-1" />
+                          Reminder {event.reminderTime} minutes before
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleDeleteEvent(event.id);
+                        setSelectedDateEvents({ date: null, events: [] });
+                      }}
+                      className="ml-4 text-zinc-400 hover:text-red-500 transition duration-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setSelectedDateEvents({ date: null, events: [] })}
+                className="px-4 py-2 text-zinc-600 hover:text-zinc-900 transition duration-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

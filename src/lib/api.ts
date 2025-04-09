@@ -88,6 +88,10 @@ export const createEvent = async (userId: string, event: Partial<CalendarEvent>)
 
 export const deleteEvent = async (eventId: string) => {
   try {
+    if (!eventId) {
+      throw new Error('Event ID is required');
+    }
+
     const response = await fetch(`${API_URL}/events/${eventId}`, {
       method: 'DELETE',
     });
@@ -101,6 +105,6 @@ export const deleteEvent = async (eventId: string) => {
     return data;
   } catch (error: any) {
     console.error('Delete event error:', error);
-    throw new Error(error.message || 'Failed to connect to the server');
+    throw error;
   }
 };
